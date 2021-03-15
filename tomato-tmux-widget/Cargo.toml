@@ -1,5 +1,5 @@
 [package]
-name = "pomodoro-widget"
+name = "tomato-tmux-widget"
 version = "0.1.0"
 authors = ["Stuck_Overflow <stuckoverflow2021@gmail.com>"]
 edition = "2018"

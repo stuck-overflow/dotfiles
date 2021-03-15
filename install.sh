@@ -4,7 +4,7 @@
 # installed in ~/bin. Alternatively you can pass the destination directory as
 # argument.
 destdir=${1:-${HOME}/bin}
-widgets="tmux-widget pomodoro-widget"
+widgets="tomato-tmux-widget twitch-tmux-widget"
 
 if [ \! -d "$destdir" ]
 then

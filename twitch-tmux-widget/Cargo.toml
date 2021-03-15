@@ -1,5 +1,5 @@
 [package]
-name = "tmux-widget"
+name = "twitch-tmux-widget"
 version = "0.0.1"
 authors = ["stuck_overflow"]
 edition = "2018"

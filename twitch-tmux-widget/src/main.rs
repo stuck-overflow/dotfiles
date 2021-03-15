@@ -12,7 +12,7 @@ use twitch_oauth2::{client::surf_http_client, AppAccessToken, Scope};
 use twitch_oauth2::{ClientId, ClientSecret};
 
 #[derive(Clone, Deserialize)]
-struct TmuxWidget {
+struct TwitchTmuxWidget {
     twitch: TwitchConfig,
 }
 
@@ -31,7 +31,7 @@ struct Cli {
     log_level: LevelFilter,
 
     /// Twitch credential files.
-    #[structopt(short, long, default_value = "tmuxwidget.toml")]
+    #[structopt(short, long, default_value = "twitch-tmux-widget.toml")]
     config_file: String,
 }
 
@@ -43,7 +43,7 @@ async fn do_request() {
         .unwrap();
 
     let config = fs::read_to_string(args.config_file).unwrap();
-    let config: TmuxWidget = toml::from_str(&config).unwrap();
+    let config: TwitchTmuxWidget = toml::from_str(&config).unwrap();
 
     let token = match AppAccessToken::get_app_access_token(
         surf_http_client,
