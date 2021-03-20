@@ -33,13 +33,17 @@ struct Cli {
 
     /// Duration (only used when running in Start run mode)
     #[structopt(short, long, default_value = "1500")]
-    timer_duration: u64,
+    timer_duration: i64,
+
+    #[structopt(short, long, default_value = "300")]
+    break_duration: i64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct TimerState {
     start_time: SystemTime,
-    timer_duration: u64,
+    timer_duration: i64,
+    break_duration: i64,
 }
 
 fn main() {
@@ -53,6 +57,7 @@ fn main() {
         let timer_state = TimerState {
             start_time: SystemTime::now(),
             timer_duration: args.timer_duration,
+            break_duration: args.break_duration,
         };
         let timer_state = serde_json::to_string(&timer_state).unwrap();
 
@@ -63,17 +68,18 @@ fn main() {
         let timer_state = fs::read_to_string(args.timer_state_file).unwrap();
         let timer_state: TimerState = serde_json::from_str(&timer_state).unwrap();
         if let Ok(time_elapsed) = SystemTime::now().duration_since(timer_state.start_time) {
-            let time_left = timer_state.timer_duration - time_elapsed.as_secs();
-            println!("{:02}:{:02}", time_left / 60, time_left % 60);
+            let time_left = timer_state.timer_duration - (time_elapsed.as_secs() as i64);
+            if time_left < 0 {
+                let time_left = timer_state.break_duration
+                    - ((time_elapsed.as_secs() as i64) - timer_state.timer_duration);
+                if time_left < 0 {
+                    println!("🕒 --:--");
+                } else {
+                    println!("🍕 {:02}:{:02}", time_left / 60, time_left % 60);
+                }
+            } else {
+                println!("🍅 {:02}:{:02}", time_left / 60, time_left % 60);
+            }
         }
     }
-    // let time_passed = current_time - start_time;
-    // start at time 5000 a timer of 1500 --> { start_time: 5000, duration: 1500 }
-    //
-    // check (e.g. at time 5500)
-    //   do now - start_time = 500
-    //   do duration - 500 = 1000
-    //
-    // Output: (1000/60):(1000%60)
-    //
 }
