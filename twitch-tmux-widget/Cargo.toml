@@ -5,12 +5,16 @@ authors = ["stuck_overflow"]
 edition = "2018"
 
 [dependencies]
+chrono = "0.4"
 futures = "0.3"
 log = "0.4"
+oauth2 = "4.0.0-alpha"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 simple_logger = "1.11"
 structopt = "0.3"
 surf = "2.2"
 toml = "0.4"
-twitch_api2 = { version = "0.5.0-alpha", features = ["allow_unknown_fields", "client", "helix", "surf_client"] }
-twitch_oauth2 = { version = "0.5.0-alpha", features = ["surf_client"] }
+tokio = { version = "1", features = ["full"] }
+twitch_api2 = { features = ["client", "helix", "surf_client", "twitch_oauth2"], git = "https://github.com/Emilgardis/twitch_api2/", branch = "master"  }
+twitch_oauth2_auth_flow = { git = "https://github.com/stuck-overflow/twitch_oauth2_auth_flow", branch = "use-git-dependencies" }

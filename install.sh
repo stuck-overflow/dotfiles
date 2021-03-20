@@ -25,5 +25,5 @@ for widget in ${widgets}; do
     cargo clean
     cargo update
     cargo build --release
-    cp -v target/release/${widget} ${destdir}/
+    cp -f -v target/release/${widget} ${destdir}/
 done

@@ -1,4 +1,6 @@
-use futures::executor::block_on;
+mod token_storage;
+
+use chrono::{DateTime, Utc};
 use log::LevelFilter;
 use serde::Deserialize;
 use simple_logger::SimpleLogger;
@@ -7,9 +9,8 @@ use structopt::StructOpt;
 use twitch_api2::helix::streams::GetStreamsRequest;
 use twitch_api2::helix::subscriptions::GetBroadcasterSubscriptionsRequest;
 use twitch_api2::helix::users::GetUsersRequest;
+use twitch_api2::twitch_oauth2::Scope;
 use twitch_api2::TwitchClient;
-use twitch_oauth2::{client::surf_http_client, AppAccessToken, Scope};
-use twitch_oauth2::{ClientId, ClientSecret};
 
 #[derive(Clone, Deserialize)]
 struct TwitchTmuxWidget {
@@ -22,6 +23,7 @@ struct TwitchConfig {
     channel_name: String,
     client_id: String,
     client_secret: String,
+    token_filepath: String,
 }
 // Command-line arguments for the tool.
 #[derive(StructOpt)]
@@ -33,9 +35,14 @@ struct Cli {
     /// Twitch credential files.
     #[structopt(short, long, default_value = "twitch-tmux-widget.toml")]
     config_file: String,
+
+    /// Obtain user token.
+    #[structopt(short, long)]
+    auth: bool,
 }
 
-async fn do_request() {
+#[tokio::main]
+pub async fn main() {
     let args = Cli::from_args();
     SimpleLogger::new()
         .with_level(args.log_level)
@@ -45,40 +52,81 @@ async fn do_request() {
     let config = fs::read_to_string(args.config_file).unwrap();
     let config: TwitchTmuxWidget = toml::from_str(&config).unwrap();
 
-    let token = match AppAccessToken::get_app_access_token(
-        surf_http_client,
-        ClientId::new(config.twitch.client_id),
-        ClientSecret::new(config.twitch.client_secret),
-        vec![Scope::ChannelReadSubscriptions],
-    )
-    .await
-    {
-        Ok(t) => t,
-        Err(e) => panic!("got error: {:?}", e),
+    if args.auth {
+        let user_token = twitch_oauth2_auth_flow::auth_flow(
+            &config.twitch.client_id,
+            &config.twitch.client_secret,
+            Some(vec![Scope::ChannelReadSubscriptions]),
+        );
+        token_storage::write_token_to_disk(
+            user_token.clone(),
+            Some(oauth2::ClientSecret::new(
+                config.twitch.client_secret.clone(),
+            )),
+            &config.twitch.token_filepath,
+        )
+        .expect("Can't write token to disk");
+    }
+
+    let token = match token_storage::load_token_from_disk(&config.twitch.token_filepath) {
+        Ok(t) => {
+            // check if refresh is due
+            t
+        }
+        Err(_) => {
+            println!("run w/ --auth");
+            return;
+        }
     };
+
     let client = TwitchClient::with_client(surf::Client::new());
     let req = GetStreamsRequest::builder()
         .user_login(vec![config.twitch.login_name.clone()])
         .build();
 
     let response = client.helix.req_get(req, &token).await.unwrap();
+    let viewers = if response.data.len() > 0 {
+        response.data[0].viewer_count
+    } else {
+        0
+    };
+    let elapsed_stream_time = if response.data.len() > 0 {
+        Utc::now().timestamp()
+            - DateTime::parse_from_rfc3339(&response.data[0].started_at)
+                .unwrap()
+                .timestamp()
+    } else {
+        0
+    };
+    let secs = elapsed_stream_time % 60;
+    let mins = elapsed_stream_time / 60;
+    let mins_rem = mins % 60;
+    let hrs = mins / 60;
 
-    println!("Viewers: {}", response.data[0].viewer_count);
+    let formatted_time = format!("{:02}:{:02}:{:02}", hrs, mins_rem, secs);
+    let req = GetUsersRequest::builder()
+        .login(vec![config.twitch.login_name.clone()])
+        .build();
+    let req = client.helix.req_get(req, &token).await.unwrap();
+    let broadcaster = req.data.get(0).unwrap();
+    let req = GetBroadcasterSubscriptionsRequest::builder()
+        .broadcaster_id(broadcaster.id.clone())
+        .first(Some(String::from("100")))
+        .build();
+    let response = client.helix.req_get(req, &token).await.unwrap();
+    let subs = if response.data.len() > 0 {
+        response.data.len()
+    } else {
+        0
+    };
 
-    // let req = GetUsersRequest::builder()
-    //     .login(vec![config.twitch.login_name.clone()])
-    //     .build();
-    // let req = client.helix.req_get(req, &token).await.unwrap();
-    // let broadcaster = req.data.get(0).unwrap();
-    // let req = GetBroadcasterSubscriptionsRequest::builder()
-    //     .broadcaster_id(broadcaster.id.clone())
-    //     .build();
-    // println!(
-    //     "{:?}",
-    //     client.helix.req_get(req, &token).await
-    //         .unwrap());
-}
+    let display_rota = vec![
+        format!("    Viewers: {}     ", viewers),
+        format!("  Subscribers: {}  ", subs),
+        format!("Stream 🕒: {}", formatted_time),
+    ];
 
-fn main() {
-    block_on(do_request())
+    let tick = secs / 5;
+    let display = (tick as usize) % display_rota.len();
+    println!("{}", display_rota[display]);
 }
