@@ -34,11 +34,22 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
             "Failed to deserialize token",
         )
     })?;
-    let expires_in = match token.expires_at {
-        Some(exp) => Some(exp.signed_duration_since(Utc::now()).to_std().unwrap()),
-        None => None,
-    };
-    let token = twitch_oauth2::UserToken::from_existing_unchecked(
+    let expires_at = token.expires_at.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Stored token doesn't have an expiration time",
+        )
+    })?;
+
+    // TODO: check if expired tokens can still be refreshed.
+    let expires_in = expires_at
+        .signed_duration_since(Utc::now())
+        .to_std()
+        .map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Stored token is expired")
+        })?;
+
+    let mut user_token = twitch_oauth2::UserToken::from_existing_unchecked(
         token.access_token.clone(),
         token.refresh_token.clone(),
         token.client_id.clone(),
@@ -46,9 +57,24 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
         token.login.clone(),
         token.user_id.clone(),
         token.scopes.clone(),
-        expires_in,
+        Some(expires_in),
     );
-    Ok(token)
+
+    if expires_in.as_secs() < 3600 {
+        eprintln!("Token about to expire, refreshing");
+        match futures::executor::block_on(
+            user_token.refresh_token(::twitch_oauth2::client::surf_http_client),
+        ) {
+            Ok(()) => write_token_to_disk(
+                user_token.clone(),
+                token.client_secret.clone(),
+                token_filepath,
+            )?,
+            Err(e) => eprintln!("Error refreshing token {}", e),
+        }
+    }
+
+    Ok(user_token)
 }
 
 pub fn write_token_to_disk(
