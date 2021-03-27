@@ -11,7 +11,7 @@ Plug 'prabirshrestha/asyncomplete.vim'
 Plug 'prabirshrestha/asyncomplete-lsp.vim'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
-Plug 'codota/tabnine-vim'
+Plug 'kitagry/asyncomplete-tabnine.vim', { 'do': './install.sh' }
 call plug#end()
 
 inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
@@ -23,3 +23,13 @@ imap <c-space> <Plug>(asyncomplete_force_refresh)
 set nu
 
 let g:lsp_diagnostics_float_cursor = 1
+
+call asyncomplete#register_source(asyncomplete#sources#tabnine#get_source_options({
+    \ 'name': 'tabnine',
+    \ 'allowlist': ['*'],
+    \ 'completor': function('asyncomplete#sources#tabnine#completor'),
+    \ 'config': {
+    \   'line_limit': 1000,
+    \   'max_num_result': 20,
+    \  },
+    \ }))
