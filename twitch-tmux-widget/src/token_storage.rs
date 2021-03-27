@@ -34,11 +34,22 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
             "Failed to deserialize token",
         )
     })?;
-    let expires_in = match token.expires_at {
-        Some(exp) => Some(exp.signed_duration_since(Utc::now()).to_std().unwrap()),
-        None => None,
+    let expires_at = token.expires_at.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Stored token doesn't have an expiration time",
+        )
+    })?;
+
+    let expires_in = match expires_at.signed_duration_since(Utc::now()).to_std() {
+        Ok(e) => e,
+        Err(_) => {
+            eprintln!("Token expired at {:?}, will attempt refresh", expires_at);
+            std::time::Duration::from_secs(0)
+        }
     };
-    let token = twitch_oauth2::UserToken::from_existing_unchecked(
+
+    let mut user_token = twitch_oauth2::UserToken::from_existing_unchecked(
         token.access_token.clone(),
         token.refresh_token.clone(),
         token.client_id.clone(),
@@ -46,9 +57,37 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
         token.login.clone(),
         token.user_id.clone(),
         token.scopes.clone(),
-        expires_in,
+        Some(expires_in),
     );
-    Ok(token)
+
+    let expires_in = expires_in.as_secs();
+    if expires_in < 3600 {
+        if expires_in > 0 {
+            eprintln!(
+                "Token expiring in {} seconds, attempting refresh",
+                expires_in
+            );
+        }
+
+        match futures::executor::block_on(
+            user_token.refresh_token(::twitch_oauth2::client::surf_http_client),
+        ) {
+            Ok(()) => write_token_to_disk(
+                user_token.clone(),
+                token.client_secret.clone(),
+                token_filepath,
+            )?,
+            Err(e) => {
+                eprintln!("Error refreshing token {}", e);
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Can't refresh token",
+                ));
+            }
+        }
+    }
+
+    Ok(user_token)
 }
 
 pub fn write_token_to_disk(

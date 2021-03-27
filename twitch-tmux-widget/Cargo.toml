@@ -17,4 +17,5 @@ surf = "2.2"
 toml = "0.4"
 tokio = { version = "1", features = ["full"] }
 twitch_api2 = { features = ["client", "helix", "surf_client", "twitch_oauth2"], git = "https://github.com/Emilgardis/twitch_api2/", branch = "master"  }
-twitch_oauth2_auth_flow = { git = "https://github.com/stuck-overflow/twitch_oauth2_auth_flow", branch = "use-git-dependencies" }
+twitch_oauth2 = { features = ["surf_client"], git = "https://github.com/Emilgardis/twitch_oauth2/", branch = "master"  }
+twitch_oauth2_auth_flow = { git = "https://github.com/stuck-overflow/twitch_oauth2_auth_flow", branch = "main" }

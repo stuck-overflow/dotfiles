@@ -49,8 +49,21 @@ pub async fn main() {
         .init()
         .unwrap();
 
-    let config = fs::read_to_string(args.config_file).unwrap();
-    let config: TwitchTmuxWidget = toml::from_str(&config).unwrap();
+    let config = match fs::read_to_string(&args.config_file) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Unable to load config from {}: {}", args.config_file, e);
+            std::process::exit(1);
+        }
+    };
+
+    let config = match toml::from_str::<TwitchTmuxWidget>(&config) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Unable to parse config from {}: {}", args.config_file, e);
+            std::process::exit(1);
+        }
+    };
 
     if args.auth {
         let user_token = twitch_oauth2_auth_flow::auth_flow(
@@ -69,13 +82,11 @@ pub async fn main() {
     }
 
     let token = match token_storage::load_token_from_disk(&config.twitch.token_filepath) {
-        Ok(t) => {
-            // check if refresh is due
-            t
-        }
-        Err(_) => {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Error loading token: {}", e);
             println!("run w/ --auth");
-            return;
+            std::process::exit(1);
         }
     };
 
@@ -126,7 +137,7 @@ pub async fn main() {
         format!("Stream 🕒: {}", formatted_time),
     ];
 
-    let tick = secs / 5;
+    let tick = Utc::now().timestamp() / 5;
     let display = (tick as usize) % display_rota.len();
     println!("{}", display_rota[display]);
 }
