@@ -41,13 +41,13 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
         )
     })?;
 
-    // TODO: check if expired tokens can still be refreshed.
-    let expires_in = expires_at
-        .signed_duration_since(Utc::now())
-        .to_std()
-        .map_err(|_| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Stored token is expired")
-        })?;
+    let expires_in = match expires_at.signed_duration_since(Utc::now()).to_std() {
+        Ok(e) => e,
+        Err(_) => {
+            eprintln!("Token expired at {:?}, will attempt refresh", expires_at);
+            std::time::Duration::from_secs(0)
+        }
+    };
 
     let mut user_token = twitch_oauth2::UserToken::from_existing_unchecked(
         token.access_token.clone(),
@@ -60,8 +60,15 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
         Some(expires_in),
     );
 
-    if expires_in.as_secs() < 3600 {
-        eprintln!("Token about to expire, refreshing");
+    let expires_in = expires_in.as_secs();
+    if expires_in < 3600 {
+        if expires_in > 0 {
+            eprintln!(
+                "Token expiring in {} seconds, attempting refresh",
+                expires_in
+            );
+        }
+
         match futures::executor::block_on(
             user_token.refresh_token(::twitch_oauth2::client::surf_http_client),
         ) {
@@ -70,7 +77,13 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
                 token.client_secret.clone(),
                 token_filepath,
             )?,
-            Err(e) => eprintln!("Error refreshing token {}", e),
+            Err(e) => {
+                eprintln!("Error refreshing token {}", e);
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Can't refresh token",
+                ));
+            }
         }
     }
 
