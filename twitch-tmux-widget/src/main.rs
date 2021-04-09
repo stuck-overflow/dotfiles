@@ -133,7 +133,7 @@ pub async fn main() {
 
     let display_rota = vec![
         format!("    Viewers: {}     ", viewers),
-       // format!("  Subscribers: {}  ", subs),
+        format!("  Subscribers: {}  ", subs),
         format!("Stream 🕒: {}", formatted_time),
     ];
 
