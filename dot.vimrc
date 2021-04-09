@@ -12,7 +12,10 @@ Plug 'prabirshrestha/asyncomplete-lsp.vim'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'kitagry/asyncomplete-tabnine.vim', { 'do': './install.sh' }
-Plug 'sainnhe/edge'
+if has('nvim')
+  Plug 'sainnhe/edge'
+  Plug 'itchyny/lightline.vim'
+endif
 call plug#end()
 
 inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
@@ -24,11 +27,7 @@ imap <c-space> <Plug>(asyncomplete_force_refresh)
 set nu
 
 let g:lsp_diagnostics_float_cursor = 1
-let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
-let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
 
-set background=dark
-set t_Co=256
 call asyncomplete#register_source(asyncomplete#sources#tabnine#get_source_options({
     \ 'name': 'tabnine',
     \ 'allowlist': ['*'],
@@ -38,20 +37,20 @@ call asyncomplete#register_source(asyncomplete#sources#tabnine#get_source_option
     \   'max_num_result': 20,
     \  },
     \ }))
-" Important!!
-if has('termguicolors')
-          set termguicolors
+
+set list listchars=tab:»\ ,trail:°
+
+set hlsearch
+
+if has('nvim')
+  if has('termguicolors')
+    set termguicolors
+  endif
+
+  let g:edge_style = 'default'
+  let g:edge_enable_italic = 1
+  let g:edge_disable_italic_comment = 1
+  let g:lightline = {'colorscheme' : 'edge'}
+
+  colorscheme edge
 endif
-
-" The configuration options should be placed before `colorscheme edge`.
-let g:edge_style = 'default'
-let g:edge_enable_italic = 1
-let g:edge_disable_italic_comment = 1
-
-colorscheme edge
-
-
-
-
-
-
