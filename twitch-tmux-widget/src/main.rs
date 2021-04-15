@@ -53,6 +53,8 @@ pub async fn main() {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Unable to load config from {}: {}", args.config_file, e);
+            // print an empty line so tmux can render something.
+            println!("");
             std::process::exit(1);
         }
     };
@@ -61,6 +63,8 @@ pub async fn main() {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Unable to parse config from {}: {}", args.config_file, e);
+            // print an empty line so tmux can render something.
+            println!("");
             std::process::exit(1);
         }
     };
