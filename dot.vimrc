@@ -16,6 +16,7 @@ Plug 'kitagry/asyncomplete-tabnine.vim', { 'do': './install.sh' }
 Plug 'tpope/vim-commentary'
 " Only display relative numbers in places that make sense
 Plug 'jeffkreeftmeijer/vim-numbertoggle'
+Plug 'rust-lang/rust.vim'
 if has('nvim')
   Plug 'sainnhe/edge'
   Plug 'itchyny/lightline.vim'
@@ -45,6 +46,10 @@ call asyncomplete#register_source(asyncomplete#sources#tabnine#get_source_option
 set list listchars=tab:»\ ,trail:°
 
 set hlsearch
+
+" Turn on automatic formatting on save using nightly rustfmt
+let g:rustfmt_command = 'rustup run nightly rustfmt --edition 2018'
+let g:rustfmt_autosave = 1
 
 if has('nvim')
   if has('termguicolors')
