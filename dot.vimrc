@@ -55,6 +55,7 @@ if has('nvim')
   let g:edge_enable_italic = 1
   let g:edge_disable_italic_comment = 1
   let g:lightline = {'colorscheme' : 'edge'}
-
+  " Turn off default nvim display of current mode, because it's shown in lightline
+  set noshowmode
   colorscheme edge
 endif
