@@ -12,6 +12,8 @@ Plug 'prabirshrestha/asyncomplete-lsp.vim'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'kitagry/asyncomplete-tabnine.vim', { 'do': './install.sh' }
+" Comment lines easily (e.g. gcc to comment out a line)
+Plug 'tpope/vim-commentary'
 " Only display relative numbers in places that make sense
 Plug 'jeffkreeftmeijer/vim-numbertoggle'
 if has('nvim')
