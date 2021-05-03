@@ -70,7 +70,7 @@ pub fn load_token_from_disk(token_filepath: &str) -> io::Result<twitch_oauth2::U
         }
 
         match futures::executor::block_on(
-            user_token.refresh_token(::twitch_oauth2::client::surf_http_client),
+            user_token.refresh_token(twitch_oauth2::client::surf_http_client),
         ) {
             Ok(()) => write_token_to_disk(
                 user_token.clone(),

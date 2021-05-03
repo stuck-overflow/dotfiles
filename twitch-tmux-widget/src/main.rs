@@ -70,11 +70,20 @@ pub async fn main() {
     };
 
     if args.auth {
-        let user_token = twitch_oauth2_auth_flow::auth_flow(
+        let user_token = match twitch_oauth2_auth_flow::auth_flow(
             &config.twitch.client_id,
             &config.twitch.client_secret,
             Some(vec![Scope::ChannelReadSubscriptions]),
-        );
+            "http://localhost:10666/twitch/token"
+        ) {
+            Ok(t) => t,
+            Err(e) => {
+            eprintln!("Unable to parse config from {}: {}", args.config_file, e);
+            // print an empty line so tmux can render something.
+            println!("");
+            std::process::exit(1);
+            }
+        };
         token_storage::write_token_to_disk(
             user_token.clone(),
             Some(oauth2::ClientSecret::new(
