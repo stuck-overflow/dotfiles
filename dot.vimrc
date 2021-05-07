@@ -17,6 +17,7 @@ Plug 'tpope/vim-commentary'
 " Only display relative numbers in places that make sense
 Plug 'jeffkreeftmeijer/vim-numbertoggle'
 Plug 'rust-lang/rust.vim'
+Plug 'Yilin-Yang/vim-markbar'
 if has('nvim')
   Plug 'sainnhe/edge'
   Plug 'itchyny/lightline.vim'
