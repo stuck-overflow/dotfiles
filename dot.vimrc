@@ -48,7 +48,7 @@ set list listchars=tab:»\ ,trail:°
 set hlsearch
 
 " Turn on automatic formatting on save using nightly rustfmt
-let g:rustfmt_command = 'rustup run nightly rustfmt --edition 2018'
+let g:rustfmt_command = 'rustup run nightly rustfmt'
 let g:rustfmt_autosave = 1
 
 if has('nvim')
